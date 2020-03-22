@@ -1,0 +1,15 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/roguelike
+roguelike.so
+roguelike.dylib
+roguelike.dll
+roguelike.a
+roguelike.lib
+roguelike-test-*
+*.exe
+*.o
+*.obj
+*.lst

@@ -1,0 +1,13 @@
+{
+	"authors": [
+		"KM"
+	],
+	"copyright": "Copyright © 2020, KM",
+	"dependencies": {
+		"libtcod-d": ">=1.5.1-2 <1.6.0-0"
+	},
+	"excludedSourceFiles" : ["source/example.d"],
+	"description": "A minimal D application.",
+	"license": "MIT",
+	"name": "roguelike"
+}
