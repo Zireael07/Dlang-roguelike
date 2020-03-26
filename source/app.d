@@ -69,23 +69,31 @@ class Engine {
        auto k = TCOD_console_check_for_keypress(TCOD_KEY_PRESSED);
         switch(k.vk) {
             case TCODK_UP : 
-                if (!this.map.isWall(this.playerx, this.playery-1) && this.playery > 1){
-                    this.playery--; 
+                if (this.playery > 0){
+                    if (!this.map.isWall(this.playerx, this.playery-1)){
+                        this.playery--; 
+                    }          
                 }
             break;
             case TCODK_DOWN : 
-                if (!this.map.isWall(this.playerx, this.playery+1) && this.playery < this.map.height-2){
-                    this.playery++; 
+                if (this.playery < this.map.height-1){
+                    if (!this.map.isWall(this.playerx, this.playery+1)){
+                        this.playery++; 
+                    }
                 }    
             break;
             case TCODK_LEFT : 
-                if (!this.map.isWall(this.playerx-1, this.playery) && this.playerx > 0){
-                    this.playerx--; 
+                if (this.playerx > 0){
+                    if (!this.map.isWall(this.playerx-1, this.playery)){
+                        this.playerx--; 
+                    }
                 }
             break;
             case TCODK_RIGHT :
-                if (!this.map.isWall(this.playerx+1, this.playery) && this.playerx < this.map.width-1){
-                    this.playerx++; 
+                if (this.playerx < this.map.width-1){
+                    if (!this.map.isWall(this.playerx+1, this.playery)){
+                        this.playerx++; 
+                    }
                 }
             break;
             default:break;
