@@ -4,15 +4,47 @@ import tcod.c.all;
 //to convert strings to 0-terminated as in C
 import std.string;
 import core.stdc.string;
-
+import std.stdio;
 
 import source.map;
 
+//ECS components
+struct Renderable{
+    char chr;
+    int id = 1;
+}
+
+struct Position {
+    int x;
+    int y;
+    int id = 2;
+}
+
+struct Components {
+    bool pos;
+    bool renderable; //=false
+    string toString() {
+        import std.format: format;
+
+        return "Components(pos: %s, render: %s)".format(pos, renderable);
+    }
+}
 
 class Engine {
     Map map;
     int playerx;
     int playery;
+
+    //test ECS
+    //no dynamic arrays in BetterC, sadly
+    //managers per type to work around trying to find a super-type for all structs
+    Position[2048] PositionManager;
+    Renderable[2048] RenderableManager;
+    
+    //store whether we have the component
+    Components[2048] comps; 
+    Components[] sl; //slice
+
     //constructor
     this(){
         //centrally on map
@@ -21,6 +53,19 @@ class Engine {
         //hello world
         TCOD_console_init_root(80, 50, "Hello, world.", false, TCOD_RENDERER_SDL);
         this.map = new Map(80,45);
+
+        //ECS
+        Renderable rnd = Renderable('h');
+        this.RenderableManager[0] = rnd;
+        Position pos = Position(4,4);
+        this.PositionManager[0] = pos;
+        Components comp;
+        comp.pos = true;
+        comp.renderable = true;
+        this.comps[0] = comp;
+        //slice
+        auto sl = this.comps[0..1];
+        this.sl = sl;
     }
 
     void update(){
@@ -63,7 +108,18 @@ class Engine {
         //draw map
         this.map.render();
         TCOD_console_put_char(null, playerx, playery, '@', TCOD_BKGND_NONE);
-        
+
+        //test ECS
+        //writeln(this.comps[0].toString());
+        foreach (i, c; this.sl){ //this.comps
+            //debug
+           //writeln(i, ": ", c.toString());
+           if (c.pos && c.renderable){
+               TCOD_console_put_char(null, this.PositionManager[i].x, this.PositionManager[i].y, this.RenderableManager[i].chr, TCOD_BKGND_NONE);
+           }
+        } 
+
+
         //TCOD_console_print(null, 0, 0, "Hello, world.");
 
    }
