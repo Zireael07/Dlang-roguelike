@@ -32,8 +32,8 @@ struct Components {
 
 class Engine {
     Map map;
-    int playerx;
-    int playery;
+    //int playerx;
+    //int playery;
 
     //test ECS
     //no dynamic arrays in BetterC, sadly
@@ -47,24 +47,34 @@ class Engine {
 
     //constructor
     this(){
-        //centrally on map
-        this.playerx=40;
-        this.playery=25;
+        
+        //this.playerx=40;
+        //this.playery=25;
         //hello world
         TCOD_console_init_root(80, 50, "Hello, world.", false, TCOD_RENDERER_SDL);
         this.map = new Map(80,45);
 
         //ECS
-        Renderable rnd = Renderable('h');
+        //0 is always the player
+        Renderable rnd = Renderable('@');
         this.RenderableManager[0] = rnd;
-        Position pos = Position(4,4);
+        //centrally on map
+        Position pos = Position(40,25);
         this.PositionManager[0] = pos;
-        Components comp;
-        comp.pos = true;
-        comp.renderable = true;
+        Components comp = Components(true, true);
+        //Components comp;
+        //comp.pos = true;
+        //comp.renderable = true;
         this.comps[0] = comp;
+
+        rnd = Renderable('h');
+        this.RenderableManager[1] = rnd;
+        pos = Position(4,4);
+        this.PositionManager[1] = pos;
+        this.comps[1] = comp;
+
         //slice
-        auto sl = this.comps[0..1];
+        auto sl = this.comps[0..2]; //get all components for existing entities
         this.sl = sl;
     }
 
@@ -72,30 +82,30 @@ class Engine {
        auto k = TCOD_console_check_for_keypress(TCOD_KEY_PRESSED);
         switch(k.vk) {
             case TCODK_UP : 
-                if (this.playery > 0){
-                    if (!this.map.isWall(this.playerx, this.playery-1)){
-                        this.playery--; 
+                if (this.PositionManager[0].y > 0){
+                    if (!this.map.isWall(this.PositionManager[0].x, this.PositionManager[0].y-1)){
+                        this.PositionManager[0].y--; 
                     }          
                 }
             break;
             case TCODK_DOWN : 
-                if (this.playery < this.map.height-1){
-                    if (!this.map.isWall(this.playerx, this.playery+1)){
-                        this.playery++; 
+                if (this.PositionManager[0].y < this.map.height-1){
+                    if (!this.map.isWall(this.PositionManager[0].x, this.PositionManager[0].y+1)){
+                        this.PositionManager[0].y++; 
                     }
                 }    
             break;
             case TCODK_LEFT : 
-                if (this.playerx > 0){
-                    if (!this.map.isWall(this.playerx-1, this.playery)){
-                        this.playerx--; 
+                if (this.PositionManager[0].x > 0){
+                    if (!this.map.isWall(this.PositionManager[0].x-1, this.PositionManager[0].y)){
+                        this.PositionManager[0].x--; 
                     }
                 }
             break;
             case TCODK_RIGHT :
-                if (this.playerx < this.map.width-1){
-                    if (!this.map.isWall(this.playerx+1, this.playery)){
-                        this.playerx++; 
+                if (this.PositionManager[0].x < this.map.width-1){
+                    if (!this.map.isWall(this.PositionManager[0].x+1, this.PositionManager[0].y)){
+                        this.PositionManager[0].x++; 
                     }
                 }
             break;
@@ -107,7 +117,7 @@ class Engine {
         TCOD_console_clear(null);
         //draw map
         this.map.render();
-        TCOD_console_put_char(null, playerx, playery, '@', TCOD_BKGND_NONE);
+        //TCOD_console_put_char(null, playerx, playery, '@', TCOD_BKGND_NONE);
 
         //test ECS
         //writeln(this.comps[0].toString());
