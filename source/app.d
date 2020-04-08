@@ -20,20 +20,24 @@ struct Position {
     int id = 2;
 }
 
+struct TileBlocker {
+    bool block = true;
+}
+
+
 struct Components {
     bool pos;
     bool renderable; //=false
+    bool tileblocker; //=false
     string toString() {
         import std.format: format;
 
-        return "Components(pos: %s, render: %s)".format(pos, renderable);
+        return "Components(pos: %s, render: %s, tileblocker: %s)".format(pos, renderable, tileblocker);
     }
 }
 
 class Engine {
     Map map;
-    //int playerx;
-    //int playery;
 
     //test ECS
     //no dynamic arrays in BetterC, sadly
@@ -47,9 +51,6 @@ class Engine {
 
     //constructor
     this(){
-        
-        //this.playerx=40;
-        //this.playery=25;
         //hello world
         TCOD_console_init_root(80, 50, "Hello, world.", false, TCOD_RENDERER_SDL);
         this.map = new Map(80,45);
@@ -62,20 +63,31 @@ class Engine {
         Position pos = Position(40,25);
         this.PositionManager[0] = pos;
         Components comp = Components(true, true);
-        //Components comp;
-        //comp.pos = true;
-        //comp.renderable = true;
         this.comps[0] = comp;
 
         rnd = Renderable('h');
         this.RenderableManager[1] = rnd;
         pos = Position(4,4);
         this.PositionManager[1] = pos;
+        comp = Components(true, true, true);
         this.comps[1] = comp;
 
         //slice
         auto sl = this.comps[0..2]; //get all components for existing entities
         this.sl = sl;
+    }
+
+    bool getTileBlockers(int x, int y){
+        bool ret = false;
+        foreach (i, c; this.sl){ //this.comps
+           if (c.pos && c.tileblocker){
+               if (this.PositionManager[i].x == x && this.PositionManager[i].y == y){
+                   ret = true;
+                   break;
+               }
+           }
+        }
+        return ret;
     }
 
     void update(){
@@ -84,28 +96,37 @@ class Engine {
             case TCODK_UP : 
                 if (this.PositionManager[0].y > 0){
                     if (!this.map.isWall(this.PositionManager[0].x, this.PositionManager[0].y-1)){
-                        this.PositionManager[0].y--; 
+                        if (!this.getTileBlockers(this.PositionManager[0].x, this.PositionManager[0].y-1)){
+                            this.PositionManager[0].y--; 
+                        }
+                        
                     }          
                 }
             break;
             case TCODK_DOWN : 
                 if (this.PositionManager[0].y < this.map.height-1){
                     if (!this.map.isWall(this.PositionManager[0].x, this.PositionManager[0].y+1)){
-                        this.PositionManager[0].y++; 
+                        if (!this.getTileBlockers(this.PositionManager[0].x, this.PositionManager[0].y+1)){
+                            this.PositionManager[0].y++; 
+                        }
                     }
                 }    
             break;
             case TCODK_LEFT : 
                 if (this.PositionManager[0].x > 0){
                     if (!this.map.isWall(this.PositionManager[0].x-1, this.PositionManager[0].y)){
-                        this.PositionManager[0].x--; 
+                        if (!this.getTileBlockers(this.PositionManager[0].x-1, this.PositionManager[0].y)){
+                            this.PositionManager[0].x--;
+                        }
                     }
                 }
             break;
             case TCODK_RIGHT :
                 if (this.PositionManager[0].x < this.map.width-1){
                     if (!this.map.isWall(this.PositionManager[0].x+1, this.PositionManager[0].y)){
-                        this.PositionManager[0].x++; 
+                        if (!this.getTileBlockers(this.PositionManager[0].x+1, this.PositionManager[0].y)){
+                            this.PositionManager[0].x++;
+                        }
                     }
                 }
             break;
@@ -121,6 +142,8 @@ class Engine {
 
         //test ECS
         //writeln(this.comps[0].toString());
+
+        //render all existing entities with both position and renderable
         foreach (i, c; this.sl){ //this.comps
             //debug
            //writeln(i, ": ", c.toString());
