@@ -26,20 +26,6 @@ class Map {
        //2d map to 1D array
        return !tiles[x+y*this.width].can_walk;
    }
-   void render() {
-        foreach( y; 0 .. this.height )
-        {
-            foreach( x; 0 .. this.width )
-            {
-                if (isWall(x,y)) {
-                    TCOD_console_put_char(null, x, y, '#', TCOD_BKGND_NONE);
-                }
-                else{
-                    TCOD_console_put_char(null, x, y, '.', TCOD_BKGND_NONE);
-                }
-            }
-        }
-   }
 
    void setWall(int x, int y){
        tiles[x+y*width].can_walk=false;

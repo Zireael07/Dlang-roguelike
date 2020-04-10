@@ -7,6 +7,7 @@ import core.stdc.string;
 import std.stdio;
 
 import source.map;
+import source.fov;
 
 //ECS components
 struct Renderable{
@@ -38,6 +39,7 @@ struct Components {
 
 class Engine {
     Map map;
+    ShadowCastFOV fov;
 
     //test ECS
     //no dynamic arrays in BetterC, sadly
@@ -54,6 +56,7 @@ class Engine {
         //hello world
         TCOD_console_init_root(80, 50, "Hello, world.", false, TCOD_RENDERER_SDL);
         this.map = new Map(80,45);
+        this.fov = new ShadowCastFOV(this.map);
 
         //ECS
         //0 is always the player
@@ -76,6 +79,24 @@ class Engine {
         auto sl = this.comps[0..2]; //get all components for existing entities
         this.sl = sl;
     }
+
+    void render(ShadowCastFOV fov) {
+        foreach( y; 0 .. fov.map.height )
+        {
+            foreach( x; 0 .. fov.map.width )
+            {
+                if (fov.isVisible(x,y)) {
+                    if (fov.map.isWall(x,y)) {
+                        TCOD_console_put_char(null, x, y, '#', TCOD_BKGND_NONE);
+                    }
+                    else{
+                        TCOD_console_put_char(null, x, y, '.', TCOD_BKGND_NONE);
+                    }
+                }
+                
+            }
+        }
+   }
 
     bool getTileBlockers(int x, int y){
         bool ret = false;
@@ -136,8 +157,14 @@ class Engine {
 
    void render(){
         TCOD_console_clear(null);
+
+        //test FOV
+        this.fov.clearFOV();
+        this.fov.computeFOV(this.PositionManager[0].x, this.PositionManager[0].y, 6); //6 tiles 5ft. each = 30 ft.
+
         //draw map
-        this.map.render();
+        this.render(this.fov);
+        //this.map.render();
         //TCOD_console_put_char(null, playerx, playery, '@', TCOD_BKGND_NONE);
 
         //test ECS
