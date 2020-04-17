@@ -8,6 +8,8 @@ import std.stdio;
 
 import source.map;
 import source.fov;
+import source.astar;
+
 
 //ECS components
 struct Renderable{
@@ -40,6 +42,7 @@ struct Components {
 class Engine {
     Map map;
     ShadowCastFOV fov;
+    AStar as;
 
     //test ECS
     //no dynamic arrays in BetterC, sadly
@@ -169,6 +172,19 @@ class Engine {
 
         //test ECS
         //writeln(this.comps[0].toString());
+
+        //test Astar
+        Point s = Point(this.PositionManager[0].x, this.PositionManager[0].y);
+        //writeln("Start pt @: ", s.x, ", ", s.y);
+        Point e = Point(6,6); //test
+        if( this.as.search( s, e, this.fov.map ) ) {
+            Point[] path;
+            // 'c' is cost
+            int c = as.path( path );
+            foreach( i; path ) {
+                writeln("(", i.x, ", ", i.y, ") ");
+             }
+         }
 
         //render all existing entities with both position and renderable
         foreach (i, c; this.sl){ //this.comps
