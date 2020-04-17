@@ -27,15 +27,22 @@ struct TileBlocker {
     bool block = true;
 }
 
+struct Name {
+    string name;
+}
+
+struct NPC {}
 
 struct Components {
     bool pos;
     bool renderable; //=false
     bool tileblocker; //=false
+    bool name;
+    bool npc;
     string toString() {
         import std.format: format;
 
-        return "Components(pos: %s, render: %s, tileblocker: %s)".format(pos, renderable, tileblocker);
+        return "Components(pos: %s, render: %s, tileblocker: %s, name: %s, NPC: %s)".format(pos, renderable, tileblocker, name, npc);
     }
 }
 
@@ -49,6 +56,8 @@ class Engine {
     //managers per type to work around trying to find a super-type for all structs
     Position[2048] PositionManager;
     Renderable[2048] RenderableManager;
+    Name[2048] NameManager;
+    NPC[2048] NPCManager;
     
     //store whether we have the component
     Components[2048] comps; 
@@ -75,7 +84,11 @@ class Engine {
         this.RenderableManager[1] = rnd;
         pos = Position(4,4);
         this.PositionManager[1] = pos;
-        comp = Components(true, true, true);
+        Name nm = Name("Thug");
+        this.NameManager[1] = nm;
+        NPC npc = NPC();
+        this.NPCManager[1] = npc;
+        comp = Components(true, true, true, true, true);
         this.comps[1] = comp;
 
         //slice
@@ -114,6 +127,15 @@ class Engine {
         return ret;
     }
 
+    void onPlayerMove(){
+        foreach (i, c; this.sl){ //this.comps
+            if (c.npc & c.name){
+               //debug
+               writeln(this.NameManager[i].name, " growls!");
+           }
+        }
+    }
+
     void update(){
        auto k = TCOD_console_check_for_keypress(TCOD_KEY_PRESSED);
         switch(k.vk) {
@@ -121,7 +143,8 @@ class Engine {
                 if (this.PositionManager[0].y > 0){
                     if (!this.map.isWall(this.PositionManager[0].x, this.PositionManager[0].y-1)){
                         if (!this.getTileBlockers(this.PositionManager[0].x, this.PositionManager[0].y-1)){
-                            this.PositionManager[0].y--; 
+                            this.PositionManager[0].y--;
+                            onPlayerMove();
                         }
                         
                     }          
@@ -131,7 +154,8 @@ class Engine {
                 if (this.PositionManager[0].y < this.map.height-1){
                     if (!this.map.isWall(this.PositionManager[0].x, this.PositionManager[0].y+1)){
                         if (!this.getTileBlockers(this.PositionManager[0].x, this.PositionManager[0].y+1)){
-                            this.PositionManager[0].y++; 
+                            this.PositionManager[0].y++;
+                            onPlayerMove();
                         }
                     }
                 }    
@@ -141,6 +165,7 @@ class Engine {
                     if (!this.map.isWall(this.PositionManager[0].x-1, this.PositionManager[0].y)){
                         if (!this.getTileBlockers(this.PositionManager[0].x-1, this.PositionManager[0].y)){
                             this.PositionManager[0].x--;
+                            onPlayerMove();
                         }
                     }
                 }
@@ -150,6 +175,7 @@ class Engine {
                     if (!this.map.isWall(this.PositionManager[0].x+1, this.PositionManager[0].y)){
                         if (!this.getTileBlockers(this.PositionManager[0].x+1, this.PositionManager[0].y)){
                             this.PositionManager[0].x++;
+                            onPlayerMove();
                         }
                     }
                 }
@@ -181,9 +207,10 @@ class Engine {
             Point[] path;
             // 'c' is cost
             int c = as.path( path );
-            foreach( i; path ) {
-                writeln("(", i.x, ", ", i.y, ") ");
-             }
+            //debug
+            // foreach( i; path ) {
+            //     writeln("(", i.x, ", ", i.y, ") ");
+            //  }
          }
 
         //render all existing entities with both position and renderable
