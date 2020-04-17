@@ -9,59 +9,15 @@ import std.stdio;
 import source.map;
 import source.fov;
 import source.astar;
+import source.ecs;
 
-
-//ECS components
-struct Renderable{
-    char chr;
-    int id = 1;
-}
-
-struct Position {
-    int x;
-    int y;
-    int id = 2;
-}
-
-struct TileBlocker {
-    bool block = true;
-}
-
-struct Name {
-    string name;
-}
-
-struct NPC {}
-
-struct Components {
-    bool pos;
-    bool renderable; //=false
-    bool tileblocker; //=false
-    bool name;
-    bool npc;
-    string toString() {
-        import std.format: format;
-
-        return "Components(pos: %s, render: %s, tileblocker: %s, name: %s, NPC: %s)".format(pos, renderable, tileblocker, name, npc);
-    }
-}
 
 class Engine {
     Map map;
     ShadowCastFOV fov;
     AStar as;
-
-    //test ECS
-    //no dynamic arrays in BetterC, sadly
-    //managers per type to work around trying to find a super-type for all structs
-    Position[2048] PositionManager;
-    Renderable[2048] RenderableManager;
-    Name[2048] NameManager;
-    NPC[2048] NPCManager;
+    World world;
     
-    //store whether we have the component
-    Components[2048] comps; 
-    Components[] sl; //slice
 
     //constructor
     this(){
@@ -71,29 +27,8 @@ class Engine {
         this.fov = new ShadowCastFOV(this.map);
 
         //ECS
-        //0 is always the player
-        Renderable rnd = Renderable('@');
-        this.RenderableManager[0] = rnd;
-        //centrally on map
-        Position pos = Position(40,25);
-        this.PositionManager[0] = pos;
-        Components comp = Components(true, true);
-        this.comps[0] = comp;
-
-        rnd = Renderable('h');
-        this.RenderableManager[1] = rnd;
-        pos = Position(4,4);
-        this.PositionManager[1] = pos;
-        Name nm = Name("Thug");
-        this.NameManager[1] = nm;
-        NPC npc = NPC();
-        this.NPCManager[1] = npc;
-        comp = Components(true, true, true, true, true);
-        this.comps[1] = comp;
-
-        //slice
-        auto sl = this.comps[0..2]; //get all components for existing entities
-        this.sl = sl;
+        this.world = World();
+        this.world.setup();
     }
 
     void render(ShadowCastFOV fov) {
@@ -116,9 +51,9 @@ class Engine {
 
     bool getTileBlockers(int x, int y){
         bool ret = false;
-        foreach (i, c; this.sl){ //this.comps
+        foreach (i, c; this.world.sl){ //this.comps
            if (c.pos && c.tileblocker){
-               if (this.PositionManager[i].x == x && this.PositionManager[i].y == y){
+               if (this.world.PositionManager[i].x == x && this.world.PositionManager[i].y == y){
                    ret = true;
                    break;
                }
@@ -128,10 +63,10 @@ class Engine {
     }
 
     void onPlayerMove(){
-        foreach (i, c; this.sl){ //this.comps
+        foreach (i, c; this.world.sl){ //this.comps
             if (c.npc & c.name){
                //debug
-               writeln(this.NameManager[i].name, " growls!");
+               writeln(this.world.NameManager[i].name, " growls!");
            }
         }
     }
@@ -140,10 +75,10 @@ class Engine {
        auto k = TCOD_console_check_for_keypress(TCOD_KEY_PRESSED);
         switch(k.vk) {
             case TCODK_UP : 
-                if (this.PositionManager[0].y > 0){
-                    if (!this.map.isWall(this.PositionManager[0].x, this.PositionManager[0].y-1)){
-                        if (!this.getTileBlockers(this.PositionManager[0].x, this.PositionManager[0].y-1)){
-                            this.PositionManager[0].y--;
+                if (this.world.PositionManager[0].y > 0){
+                    if (!this.map.isWall(this.world.PositionManager[0].x, this.world.PositionManager[0].y-1)){
+                        if (!this.getTileBlockers(this.world.PositionManager[0].x, this.world.PositionManager[0].y-1)){
+                            this.world.PositionManager[0].y--;
                             onPlayerMove();
                         }
                         
@@ -151,30 +86,30 @@ class Engine {
                 }
             break;
             case TCODK_DOWN : 
-                if (this.PositionManager[0].y < this.map.height-1){
-                    if (!this.map.isWall(this.PositionManager[0].x, this.PositionManager[0].y+1)){
-                        if (!this.getTileBlockers(this.PositionManager[0].x, this.PositionManager[0].y+1)){
-                            this.PositionManager[0].y++;
+                if (this.world.PositionManager[0].y < this.map.height-1){
+                    if (!this.map.isWall(this.world.PositionManager[0].x, this.world.PositionManager[0].y+1)){
+                        if (!this.getTileBlockers(this.world.PositionManager[0].x, this.world.PositionManager[0].y+1)){
+                            this.world.PositionManager[0].y++;
                             onPlayerMove();
                         }
                     }
                 }    
             break;
             case TCODK_LEFT : 
-                if (this.PositionManager[0].x > 0){
-                    if (!this.map.isWall(this.PositionManager[0].x-1, this.PositionManager[0].y)){
-                        if (!this.getTileBlockers(this.PositionManager[0].x-1, this.PositionManager[0].y)){
-                            this.PositionManager[0].x--;
+                if (this.world.PositionManager[0].x > 0){
+                    if (!this.map.isWall(this.world.PositionManager[0].x-1, this.world.PositionManager[0].y)){
+                        if (!this.getTileBlockers(this.world.PositionManager[0].x-1, this.world.PositionManager[0].y)){
+                            this.world.PositionManager[0].x--;
                             onPlayerMove();
                         }
                     }
                 }
             break;
             case TCODK_RIGHT :
-                if (this.PositionManager[0].x < this.map.width-1){
-                    if (!this.map.isWall(this.PositionManager[0].x+1, this.PositionManager[0].y)){
-                        if (!this.getTileBlockers(this.PositionManager[0].x+1, this.PositionManager[0].y)){
-                            this.PositionManager[0].x++;
+                if (this.world.PositionManager[0].x < this.map.width-1){
+                    if (!this.map.isWall(this.world.PositionManager[0].x+1, this.world.PositionManager[0].y)){
+                        if (!this.getTileBlockers(this.world.PositionManager[0].x+1, this.world.PositionManager[0].y)){
+                            this.world.PositionManager[0].x++;
                             onPlayerMove();
                         }
                     }
@@ -189,7 +124,7 @@ class Engine {
 
         //test FOV
         this.fov.clearFOV();
-        this.fov.computeFOV(this.PositionManager[0].x, this.PositionManager[0].y, 6); //6 tiles 5ft. each = 30 ft.
+        this.fov.computeFOV(this.world.PositionManager[0].x, this.world.PositionManager[0].y, 6); //6 tiles 5ft. each = 30 ft.
 
         //draw map
         this.render(this.fov);
@@ -200,7 +135,7 @@ class Engine {
         //writeln(this.comps[0].toString());
 
         //test Astar
-        Point s = Point(this.PositionManager[0].x, this.PositionManager[0].y);
+        Point s = Point(this.world.PositionManager[0].x, this.world.PositionManager[0].y);
         //writeln("Start pt @: ", s.x, ", ", s.y);
         Point e = Point(6,6); //test
         if( this.as.search( s, e, this.fov.map ) ) {
@@ -214,11 +149,11 @@ class Engine {
          }
 
         //render all existing entities with both position and renderable
-        foreach (i, c; this.sl){ //this.comps
+        foreach (i, c; this.world.sl){ //this.comps
             //debug
            //writeln(i, ": ", c.toString());
            if (c.pos && c.renderable){
-               TCOD_console_put_char(null, this.PositionManager[i].x, this.PositionManager[i].y, this.RenderableManager[i].chr, TCOD_BKGND_NONE);
+               TCOD_console_put_char(null, this.world.PositionManager[i].x, this.world.PositionManager[i].y, this.world.RenderableManager[i].chr, TCOD_BKGND_NONE);
            }
         } 
 
