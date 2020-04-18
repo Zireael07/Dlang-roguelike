@@ -6,6 +6,9 @@ import std.algorithm;
 import std.range;
 import std.array;
 
+import std.math;
+import std.stdio;
+
 //custom
 import source.map;
 
@@ -34,13 +37,15 @@ struct AStar {
     Node[] closed;
  
     int calcDist(Point b) {
+        // diagonal movement - assumes diag dist is 1, same as cardinals
+		return max(abs(b.x - end.x), abs(b.y - end.y));
         // need a better heuristic
-        int x = end.x - b.x, y = end.y - b.y;
-        return( x * x + y * y );
+        //int x = end.x - b.x, y = end.y - b.y;
+        //return( x * x + y * y );
     }
  
     bool isValid(Point b) {
-        return ( b.x >-1 && b.y > -1 && b.x < map.width && b.y < map.height );
+        return ( b.x > -1 && b.y > -1 && b.x < map.width-1 && b.y < map.height-1 );
     }
  
     bool existPoint(Point b, int cost) {
@@ -74,6 +79,7 @@ struct AStar {
             if ( isValid(neighbour) && !map.isWall(neighbour.x,neighbour.y)) {
                 nc = stepCost + n.cost;
                 dist = calcDist( neighbour );
+
                 if( !existPoint( neighbour, nc + dist ) ) {
                     Node m;
                     m.cost = nc; m.dist = dist;
