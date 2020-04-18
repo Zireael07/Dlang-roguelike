@@ -8,14 +8,15 @@ import std.stdio;
 
 import source.map;
 import source.fov;
-import source.astar;
+//import source.astar;
+import source.pathfinding;
 import source.ecs;
 
 
 class Engine {
     Map map;
     ShadowCastFOV fov;
-    AStar as;
+    BFS pathing;
     World world;
     
 
@@ -62,58 +63,93 @@ class Engine {
         return ret;
     }
 
+    bool PlayerMove(int dx, int dy){
+        int tx = this.world.PositionManager[0].x + dx;
+        int ty = this.world.PositionManager[0].y + dy;
+
+        //don't walk out of map
+        if (tx < 0 || tx > this.map.width-1 || ty < 0 || ty > this.map.height-1){
+            return false;
+        }
+
+        //check for unwalkable tiles
+        if (this.map.isWall(tx, ty)){
+            return false;
+        }
+
+        //check for entities
+        if (this.getTileBlockers(tx, ty)){
+            //combat goes here;
+            return false;
+        }
+
+        this.world.PositionManager[0].x = tx;
+        this.world.PositionManager[0].y = ty;
+        onPlayerMove();
+        return true;
+    }
+
     void onPlayerMove(){
         foreach (i, c; this.world.sl){ //this.comps
             if (c.npc & c.name){
+                takeTurn(i);
                //debug
-               writeln(this.world.NameManager[i].name, " growls!");
+               //writeln(this.world.NameManager[i].name, " growls!");
            }
         }
+    }
+
+    // 'id' is the NPC's id (=index in managers)
+    void takeTurn(ulong id) {
+        //our position
+        Point s = Point(this.world.PositionManager[id].x, this.world.PositionManager[id].y);
+        //writeln("Start pt @: ", s.x, ", ", s.y);
+        //player pos
+        Point e = Point(this.world.PositionManager[0].x, this.world.PositionManager[0].y);
+
+        //if( this.as.search( s, e, this.fov.map ) ) {
+        //if ( this.pathing.path(s, e, this.fov.map)) {
+            Point[] path;
+            path = this.pathing.path(s, e, this.fov.map);
+            // 'c' is cost
+            //int c = as.path( path );
+            //writeln(c, ", len: ", path.length );
+            if (path.length > 0){
+                // #0 is our own position
+                if (path[1] != e){
+                    //prevent weirdness
+                    //if (abs(path[1].x - s.x) < 2 && abs(path[1].y - s.y) < 2){
+                        //just move (the path only works on walkable tiles anyway)
+                        this.world.PositionManager[id].x = path[1].x;
+                        this.world.PositionManager[id].y = path[1].y;
+                    //} 
+                }
+                else{
+                    writeln("AI kicks at your shins");
+                }
+            }
+
+            //debug
+            // foreach( i; path ) {
+            //     write("(", i.x, ", ", i.y, ") ");
+            //  }
+        //}
     }
 
     void update(){
        auto k = TCOD_console_check_for_keypress(TCOD_KEY_PRESSED);
         switch(k.vk) {
             case TCODK_UP : 
-                if (this.world.PositionManager[0].y > 0){
-                    if (!this.map.isWall(this.world.PositionManager[0].x, this.world.PositionManager[0].y-1)){
-                        if (!this.getTileBlockers(this.world.PositionManager[0].x, this.world.PositionManager[0].y-1)){
-                            this.world.PositionManager[0].y--;
-                            onPlayerMove();
-                        }
-                        
-                    }          
-                }
+                this.PlayerMove(0, -1);
             break;
             case TCODK_DOWN : 
-                if (this.world.PositionManager[0].y < this.map.height-1){
-                    if (!this.map.isWall(this.world.PositionManager[0].x, this.world.PositionManager[0].y+1)){
-                        if (!this.getTileBlockers(this.world.PositionManager[0].x, this.world.PositionManager[0].y+1)){
-                            this.world.PositionManager[0].y++;
-                            onPlayerMove();
-                        }
-                    }
-                }    
+                this.PlayerMove(0,1);
             break;
             case TCODK_LEFT : 
-                if (this.world.PositionManager[0].x > 0){
-                    if (!this.map.isWall(this.world.PositionManager[0].x-1, this.world.PositionManager[0].y)){
-                        if (!this.getTileBlockers(this.world.PositionManager[0].x-1, this.world.PositionManager[0].y)){
-                            this.world.PositionManager[0].x--;
-                            onPlayerMove();
-                        }
-                    }
-                }
+                this.PlayerMove(-1,0);
             break;
             case TCODK_RIGHT :
-                if (this.world.PositionManager[0].x < this.map.width-1){
-                    if (!this.map.isWall(this.world.PositionManager[0].x+1, this.world.PositionManager[0].y)){
-                        if (!this.getTileBlockers(this.world.PositionManager[0].x+1, this.world.PositionManager[0].y)){
-                            this.world.PositionManager[0].x++;
-                            onPlayerMove();
-                        }
-                    }
-                }
+                this.PlayerMove(1,0);
             break;
             default:break;
        }
@@ -134,19 +170,6 @@ class Engine {
         //test ECS
         //writeln(this.comps[0].toString());
 
-        //test Astar
-        Point s = Point(this.world.PositionManager[0].x, this.world.PositionManager[0].y);
-        //writeln("Start pt @: ", s.x, ", ", s.y);
-        Point e = Point(6,6); //test
-        if( this.as.search( s, e, this.fov.map ) ) {
-            Point[] path;
-            // 'c' is cost
-            int c = as.path( path );
-            //debug
-            // foreach( i; path ) {
-            //     writeln("(", i.x, ", ", i.y, ") ");
-            //  }
-         }
 
         //render all existing entities with both position and renderable
         foreach (i, c; this.world.sl){ //this.comps
