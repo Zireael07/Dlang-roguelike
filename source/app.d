@@ -8,7 +8,6 @@ import std.stdio;
 
 import source.map;
 import source.fov;
-//import source.astar;
 import source.pathfinding;
 import source.ecs;
 
@@ -17,7 +16,8 @@ class Engine {
     Map map;
     ShadowCastFOV fov;
     //BFS pathing;
-    Dijkstra pathing;
+    //Dijkstra pathing;
+    AStar pathing;
     World world;
     
 

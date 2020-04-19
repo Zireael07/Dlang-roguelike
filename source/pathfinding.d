@@ -1,4 +1,5 @@
 //based on Amit's guide https://www.redblobgames.com/pathfinding/a-star/implementation.html
+//three pathfinding algorithms (BFS, Dijkstra, A*) with a common API
 
 //basic loop is:
 // frontier = Queue()
@@ -19,6 +20,7 @@ module source.pathfinding;
 
 import std.range;
 import std.algorithm;
+import std.math; //for abs
 import std.stdio;
 
 //custom
@@ -277,33 +279,127 @@ CameFrom[] search(){
 
 }
 
-// struct AStar {
-//     Map map;
-//     Point end;
-//     Point start;
-//    	Point[8] neighbours = [Point(-1,-1), Point(1,-1), Point(-1,1), Point(1,1), Point(0,-1), Point(-1,0), Point(0,1), Point(1,0)];
-//     Node[] open;
-//     Node[] closed;
- 
-//     int calcDist(Point p) {
-//         // diagonal movement - assumes diag dist is 1, same as cardinals
-// 		return max(abs(p.x - end.x), abs(p.y - end.y));
-//     }
- 
-//     //is the point on map?
-//     bool isValid(Point p) {
-//         return ( p.x > -1 && p.y > -1 && p.x < map.width-1 && p.y < map.height-1 );
-//     }
+struct AStar {
+    Map map;
+    Point end;
+    Point start;
+   	Point[8] neighbours = [Point(-1,-1), Point(1,-1), Point(-1,1), Point(1,1), Point(0,-1), Point(-1,0), Point(0,1), Point(1,0)];
+    Point[] curr_neighbors;
 
-//     Point[] neighbours(Point p){
-//         Point[] res;
-//         for( int x = 0; x < 8; ++x ) {
-//             neighbour = p.pos + neighbours[x];
-//             if (isValid(neighbour) && !map.isWall(neighbour.x,neighbour.y)){
-//                 //add to array
-//                 res ~= neighbour;
-//             }
-//         }
-//         return res;
-//     }
-// }
+    //this is the A* heuristic 
+    //aka how to tell the algo we're going toward the end point
+    int heuristic(Point p) {
+        // diagonal movement - assumes diag dist is 1, same as cardinals
+		return max(abs(p.x - end.x), abs(p.y - end.y));
+    }
+ 
+    //is the point on map?
+    bool isValid(Point p) {
+        return ( p.x > -1 && p.y > -1 && p.x < map.width-1 && p.y < map.height-1 );
+    }
+
+    Point[] getNeighbours(Point p){
+        Point[] res;
+        for( int x = 0; x < 8; ++x ) {
+            Point neighbour = p + neighbours[x];
+            if (isValid(neighbour) && !map.isWall(neighbour.x,neighbour.y)){
+                //add to array
+                res ~= neighbour;
+            }
+        }
+        return res;
+    }
+
+    CameFrom[] search(){
+        Priority[] frontier;
+        CameFrom[] came_from;
+        NodeCost[] cost_so_far;
+        writeln("[A*] Search for start: ", start, " end: ", end);
+        frontier ~= Priority(start, 0);
+        cost_so_far ~= NodeCost(start, 0);
+
+        //find path
+        while (!frontier.empty()){
+            Point current = frontier.front().point;
+            //writeln("cur: ", current);
+            //remove it from frontier
+            frontier.popFront();
+            //writeln("frontier: ", frontier);
+
+            //early exit
+            if (current == end){
+                //writeln("Early exit: ", current);
+                break;
+            }
+
+            curr_neighbors = getNeighbours(current);
+            foreach (n; curr_neighbors){
+                //calculate cost of movement
+                auto curr_cost_id = cost_so_far.countUntil!((a,b) => a.point == b)(current);
+                NodeCost curr_cost = cost_so_far[curr_cost_id];
+                int moveCost = 1; //hardcoded for now
+                int new_cost = curr_cost.cost + moveCost;
+               
+                bool find = cost_so_far.canFind!((a,b) => a.point == b)(n);
+                auto compare_cost_id = cost_so_far.countUntil!((a,b) => a.point == b)(n);
+                 //if no cost for next or cost < cost_so_far[n]
+                if (!find || (find && new_cost < cost_so_far[compare_cost_id].cost)){
+                    cost_so_far ~= NodeCost(n, new_cost);
+                    // this single line is where A* differs from Dijkstra!
+                    int prio = new_cost + heuristic(n);
+                    frontier ~= Priority(n, prio);
+                    came_from ~= CameFrom(n, current);
+                }
+            }
+        }
+
+        return came_from;
+    }
+
+
+    //now reconstruct path from came_from
+    Point[] pathFromCameFrom(CameFrom[] came_from) {
+        Point current = end;
+        Point[] path;
+        while (current != start) {
+            path ~= current;
+            //totally unintuitively named, effectively find() from other languages
+            auto i = came_from.countUntil!((a,b) => a.point == b)(current);
+            if (i != -1){
+                current = came_from[i].came;
+            }
+            // else{
+            //     writeln("Couldn't find ", current);
+            //     break;
+            // }
+        }
+
+        path ~= start;
+        //fix the ordering
+        path.reverse();
+
+        return path;
+    }
+
+    // 'ref' is basically equivalent to C++ pointer
+    Point[] path(ref Point s, ref Point e, ref Map mp) {
+        end = e; start = s; map = mp;
+        //came_from = CameFrom[];
+        //frontier = Point[];
+
+
+        CameFrom[] camefrom = search();
+        //writeln("search length: ", camefrom.length);
+        // foreach(i; points){
+        //     write("(", i.came.x, ", ", i.came.y, ") ");
+        // }
+
+        Point[] path = pathFromCameFrom(camefrom);
+
+        // foreach( i; path ) {
+        //     write("(", i.x, ", ", i.y, ") ");
+        // }
+
+        return path;
+    }
+}
