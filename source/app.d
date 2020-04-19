@@ -51,12 +51,12 @@ class Engine {
         }
    }
 
-    bool getTileBlockers(int x, int y){
-        bool ret = false;
+    int getTileBlockers(int x, int y){
+        int ret = 0;
         foreach (i, c; this.world.sl){ //this.comps
            if (c.pos && c.tileblocker){
                if (this.world.PositionManager[i].x == x && this.world.PositionManager[i].y == y){
-                   ret = true;
+                   ret = (cast(int)(i));
                    break;
                }
            }
@@ -79,8 +79,18 @@ class Engine {
         }
 
         //check for entities
+        int blocking_id = this.getTileBlockers(tx, ty);
         if (this.getTileBlockers(tx, ty)){
             //combat goes here;
+            int damage = this.world.StatsManager[0].power;
+            this.world.StatsManager[blocking_id].hp -= damage;
+            writeln("Player dealt ", damage, " damage to enemy!");
+            //dead
+            if (this.world.StatsManager[blocking_id].hp <= 0){
+                writeln("Enemy dead!");
+                //remove from ECS
+                this.world.remove(blocking_id);
+            }
             return false;
         }
 
@@ -126,7 +136,16 @@ class Engine {
                     //} 
                 }
                 else{
-                    writeln("AI kicks at your shins");
+                    //writeln("AI kicks at your shins");
+                    //combat
+                    int damage = this.world.StatsManager[id].power;
+                    this.world.StatsManager[0].hp -= damage;
+                    writeln("Enemy dealt ", damage, " damage to player!");
+                    writeln("Player hp: ", this.world.StatsManager[0].hp);
+                    //dead
+                    if (this.world.StatsManager[0].hp <= 0){
+                        writeln("Player dead!");
+                    }
                 }
             }
 
