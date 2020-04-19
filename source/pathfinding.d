@@ -195,6 +195,8 @@ CameFrom[] search(){
 
         //find path
         while (!frontier.empty()){
+            //sort the frontier by priority, oops!
+            frontier.sort!((a,b) => (a.priority < b.priority));
             Point current = frontier.front().point;
             //writeln("cur: ", current);
             //remove it from frontier
@@ -320,6 +322,8 @@ struct AStar {
 
         //find path
         while (!frontier.empty()){
+            //sort the frontier by priority, oops!
+            frontier.sort!((a,b) => (a.priority < b.priority));
             Point current = frontier.front().point;
             //writeln("cur: ", current);
             //remove it from frontier
