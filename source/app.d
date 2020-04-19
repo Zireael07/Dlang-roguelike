@@ -16,7 +16,8 @@ import source.ecs;
 class Engine {
     Map map;
     ShadowCastFOV fov;
-    BFS pathing;
+    //BFS pathing;
+    Dijkstra pathing;
     World world;
     
 
