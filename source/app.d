@@ -4,13 +4,19 @@ import tcod.c.all;
 //to convert strings to 0-terminated as in C
 import std.string;
 import core.stdc.string;
-import std.stdio;
+import std.stdio : writeln, write;
+import std.algorithm; //to remove from array
 
 import source.map;
 import source.fov;
 import source.pathfinding;
 import source.ecs;
 
+
+struct Message{
+    string text;
+    TCOD_color_t color;
+}
 
 class Engine {
     Map map;
@@ -19,6 +25,7 @@ class Engine {
     //Dijkstra pathing;
     AStar pathing;
     World world;
+    Message[] log;
     
 
     //constructor
@@ -73,6 +80,14 @@ class Engine {
        TCOD_console_set_default_background(null, TCOD_black);
     }
 
+    void guiMessage(string msg){
+        if (this.log.length == 6){
+            this.log = this.log.remove(0);
+        }
+        //add to log
+        this.log ~= Message(msg, TCOD_white);
+    }
+
     int getTileBlockers(int x, int y){
         int ret = 0;
         foreach (i, c; this.world.sl){ //this.comps
@@ -106,10 +121,12 @@ class Engine {
             //combat goes here;
             int damage = this.world.StatsManager[0].power;
             this.world.StatsManager[blocking_id].hp -= damage;
-            writeln("Player dealt ", damage, " damage to enemy!");
+            //concat a string works just like appending to an array
+            this.guiMessage("Player dealt " ~ format("%d", damage) ~ " damage to enemy!");
             //dead
             if (this.world.StatsManager[blocking_id].hp <= 0){
-                writeln("Enemy dead!");
+                //writeln("Enemy dead!");
+                this.guiMessage("Player killed enemy");
                 //remove from ECS
                 this.world.remove(blocking_id);
             }
@@ -158,11 +175,11 @@ class Engine {
                     //} 
                 }
                 else{
-                    //writeln("AI kicks at your shins");
                     //combat
                     int damage = this.world.StatsManager[id].power;
                     this.world.StatsManager[0].hp -= damage;
-                    writeln("Enemy dealt ", damage, " damage to player!");
+                    //concat a string works just like appending to an array
+                    this.guiMessage("Enemy dealt " ~ format("%d", damage) ~ " damage to player!");
                     //writeln("Player hp: ", this.world.StatsManager[0].hp);
                     //dead
                     if (this.world.StatsManager[0].hp <= 0){
@@ -209,6 +226,12 @@ class Engine {
         //draw gui
         // draw the health bar
         this.renderBar(1,43,20,"HP",this.world.StatsManager[0].hp, this.world.StatsManager[0].max_hp, TCOD_light_red, TCOD_darker_red);
+        // draw the message log
+        int y = 44;
+        foreach (m; this.log){
+            TCOD_console_print(null, 1, y, toStringz(m.text));
+            y++;
+        }
 
         //test ECS
         //writeln(this.comps[0].toString());
