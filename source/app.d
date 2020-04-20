@@ -25,7 +25,7 @@ class Engine {
     this(){
         //hello world
         TCOD_console_init_root(80, 50, "Hello, world.", false, TCOD_RENDERER_SDL);
-        this.map = new Map(80,45);
+        this.map = new Map(80,40);
         this.fov = new ShadowCastFOV(this.map);
 
         //ECS
@@ -40,6 +40,7 @@ class Engine {
             {
                 if (fov.isVisible(x,y)) {
                     if (fov.map.isWall(x,y)) {
+                        //'null' means default console, same applies to all the TCOD_console_* functions
                         TCOD_console_put_char(null, x, y, '#', TCOD_BKGND_NONE);
                     }
                     else{
@@ -49,7 +50,28 @@ class Engine {
                 
             }
         }
-   }
+    }
+
+    void renderBar(int x, int y, int width, string name,
+    float value, float maxValue, TCOD_color_t barColor, TCOD_color_t backColor){
+        //'null' means the default console
+        // fill the background
+        TCOD_console_set_default_background(null, backColor);
+        TCOD_console_rect(null, x,y,width,1,false,TCOD_BKGND_SET);
+        //fill with color
+        int barWidth = cast(int)(value / maxValue * width);
+        if ( barWidth > 0 ) {
+            // draw the bar
+            TCOD_console_set_default_background(null, barColor);
+            TCOD_console_rect(null, x,y,barWidth,1,false,TCOD_BKGND_SET);
+        }
+        // print text on top of the bar
+        TCOD_console_set_default_foreground(null, TCOD_white);
+        TCOD_console_print_ex(null, x+width/2,y,TCOD_BKGND_NONE,TCOD_CENTER,
+       "%s : %g/%g", toStringz(name), value, maxValue);
+       //reset bg color
+       TCOD_console_set_default_background(null, TCOD_black);
+    }
 
     int getTileBlockers(int x, int y){
         int ret = 0;
@@ -141,7 +163,7 @@ class Engine {
                     int damage = this.world.StatsManager[id].power;
                     this.world.StatsManager[0].hp -= damage;
                     writeln("Enemy dealt ", damage, " damage to player!");
-                    writeln("Player hp: ", this.world.StatsManager[0].hp);
+                    //writeln("Player hp: ", this.world.StatsManager[0].hp);
                     //dead
                     if (this.world.StatsManager[0].hp <= 0){
                         writeln("Player dead!");
@@ -184,8 +206,9 @@ class Engine {
 
         //draw map
         this.render(this.fov);
-        //this.map.render();
-        //TCOD_console_put_char(null, playerx, playery, '@', TCOD_BKGND_NONE);
+        //draw gui
+        // draw the health bar
+        this.renderBar(1,43,20,"HP",this.world.StatsManager[0].hp, this.world.StatsManager[0].max_hp, TCOD_light_red, TCOD_darker_red);
 
         //test ECS
         //writeln(this.comps[0].toString());
