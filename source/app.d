@@ -26,7 +26,8 @@ class Engine {
     AStar pathing;
     World world;
     Message[] log;
-    
+    //flag for GUI
+    bool showInv;
 
     //constructor
     this(){
@@ -38,6 +39,8 @@ class Engine {
         //ECS
         this.world = World();
         this.world.setup();
+
+        this.showInv = false;
     }
 
     void render(ShadowCastFOV fov) {
@@ -195,6 +198,101 @@ class Engine {
         //}
     }
 
+    int GetItemAtPos(int x, int y) {
+        int ret = 0;
+        foreach (i, c; this.world.sl){
+           if (c.pos && c.item && ! c.in_backpack){
+               if (this.world.PositionManager[i].x == x && this.world.PositionManager[i].y == y){
+                   ret = (cast(int)(i));
+                   break;
+               }
+           }
+        }
+        return ret;
+    }
+
+    void GetItem() {
+        int x = this.world.PositionManager[0].x;
+        int y = this.world.PositionManager[0].y;
+
+        int it = this.GetItemAtPos(x,y);
+        if (it) {
+            this.world.addComp(it);
+            this.guiMessage("Picked up item");
+        } 
+        else {
+            this.guiMessage("Nothing to pick up here!");
+        }
+    }
+
+    void drawInventory() {
+        // fill the background
+        TCOD_console_set_default_background(null, TCOD_black);
+        TCOD_console_rect(null, 5,5,20,10,false,TCOD_BKGND_SET);
+        
+        TCOD_console_set_default_foreground(null, TCOD_white);
+        TCOD_console_print(null, 7, 6, toStringz("INVENTORY"));
+        // display the items with their keyboard shortcut
+        int shortcut='a';
+        int y=8;
+
+        foreach (i, c; this.world.sl){
+           if (c.pos && c.item && c.in_backpack){
+               TCOD_console_print(null, 5+2, y, "(%c) %s", shortcut, toStringz(this.world.NameManager[i].name));
+               y++;
+               shortcut++;
+           }
+        }
+
+        //TCOD_console_flush();
+    }
+
+    void ShowInventory(){
+        this.showInv = true;   
+    }
+
+    ulong[2048] getInventory(){
+        ulong[2048] item_shortcuts;
+        int shortcut='a';
+        //writeln("Shortcut ", shortcut);
+
+        foreach (i, c; this.world.sl){
+           if (c.pos && c.item && c.in_backpack){
+               item_shortcuts[shortcut] = i;
+               writeln("Shorcut ", shortcut, " set to ", i);
+               shortcut++;
+               
+           }
+        }
+
+        return item_shortcuts;
+    }
+
+    void UseItem(int index) {
+        //writeln("Using item with index ", index);
+        if (index >=0 && index < 2){
+            //is there an inventory item at index?
+            ulong[2048] inv = this.getInventory();
+            int shortcut = index + 'a';
+
+            if (inv[shortcut] != 0) {
+                this.guiMessage("Using " ~ format("%s", this.world.NameManager[inv[shortcut]].name));
+                //is this a heal item?
+                if (this.world.sl[inv[shortcut]].heal){
+                    //heal
+                    int heal = 5;
+                    if (this.world.StatsManager[0].hp > this.world.StatsManager[0].max_hp-5) {
+                        heal = this.world.StatsManager[0].max_hp - this.world.StatsManager[0].hp;
+                    }
+                    this.world.StatsManager[0].hp += heal;
+                    this.guiMessage("Healed 5 hp!");
+                    //axe the potion
+                    this.world.remove(cast(int)inv[shortcut]);
+                }
+            }
+        }
+    }
+
     void update(){
        auto k = TCOD_console_check_for_keypress(TCOD_KEY_PRESSED);
         switch(k.vk) {
@@ -209,6 +307,44 @@ class Engine {
             break;
             case TCODK_RIGHT :
                 this.PlayerMove(1,0);
+            break;
+            //any printable (ASCII) key
+            case TCODK_CHAR :
+                //check key char now
+                auto c = k.c;
+                    //inventory
+                    if (this.showInv) {
+                        int actorIndex = k.c - 'a';
+                        this.UseItem(actorIndex);
+                        this.showInv = false;
+                    }
+                    else {
+                        switch (k.c) {
+                            case 'g' :
+                                this.GetItem();
+                            break;
+                            case 'i' :
+                                //toggle inventory
+                                if (!this.showInv){
+                                    this.ShowInventory();
+                                }
+                                // else {
+                                //     this.showInv = false;
+                                // }
+                                
+                            break;
+                            default:break;
+                        }
+
+                    } 
+                //}
+                
+            break;
+            case TCODK_ESCAPE :
+                //exit inventory
+                if (this.showInv){
+                    this.showInv = false;
+                }
             break;
             default:break;
        }
@@ -241,13 +377,18 @@ class Engine {
         foreach (i, c; this.world.sl){ //this.comps
             //debug
            //writeln(i, ": ", c.toString());
-           if (c.pos && c.renderable){
+           if (c.pos && c.renderable && !c.in_backpack){
                TCOD_console_put_char(null, this.world.PositionManager[i].x, this.world.PositionManager[i].y, this.world.RenderableManager[i].chr, TCOD_BKGND_NONE);
            }
         } 
 
 
         //TCOD_console_print(null, 0, 0, "Hello, world.");
+
+        //draw inventory
+        if (this.showInv){
+            this.drawInventory();
+        }
 
    }
 }

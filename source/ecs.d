@@ -40,6 +40,12 @@ struct Stats {
 //     int target_id;
 // }
 
+struct Item {}
+
+struct InBackpack {}
+
+struct Heal {}
+
 struct Components {
     bool pos;
     bool renderable; //=false
@@ -47,6 +53,9 @@ struct Components {
     bool name;
     bool npc;
     bool stats;
+    bool item;
+    bool in_backpack;
+    bool heal;
     //bool combat;
     string toString() {
         import std.format: format;
@@ -65,6 +74,9 @@ struct World {
     NPC[2048] NPCManager;
     Stats[2048] StatsManager;
     //Combat[2048] CombatManager;
+    Item[2048] ItemManager;
+    InBackpack[2048] BackpackManager;
+    Heal[2048] HealManager;
 
     //slices
     Position[] PositionManager_sl;
@@ -72,6 +84,9 @@ struct World {
     Name[] NameManager_sl;
     NPC[] NPCManager_sl;
     Stats[] StatsManager_sl;
+    Item[] ItemManager_sl;
+    InBackpack[] BackpackManager_sl;
+    Heal[] HealManager_sl;
     
     //store whether we have the component
     Components[2048] comps; 
@@ -89,35 +104,59 @@ struct World {
         Components comp = Components(true, true);
         comp.stats = true;
         this.comps[0] = comp;
-        
+
+        int next_ent = 1;
+        //add an item
+        rnd = Renderable('!');
+        this.RenderableManager[next_ent] = rnd;
+        pos = Position(10,10);
+        this.PositionManager[next_ent] = pos;
+        Name nm = Name("Potion");
+        this.NameManager[next_ent] = nm;
+        Item it = Item();
+        this.ItemManager[next_ent] = it;
+        Heal hl = Heal();
+        this.HealManager[next_ent] = hl;
+        comp = Components(true, true, false, true, false, false, true, false, true);
+        this.comps[next_ent] = comp;
+        next_ent++;
 
         rnd = Renderable('h');
-        this.RenderableManager[1] = rnd;
+        this.RenderableManager[next_ent] = rnd;
         pos = Position(4,4);
-        this.PositionManager[1] = pos;
-        Name nm = Name("Thug");
-        this.NameManager[1] = nm;
+        this.PositionManager[next_ent] = pos;
+        nm = Name("Thug");
+        this.NameManager[next_ent] = nm;
         NPC npc = NPC();
-        this.NPCManager[1] = npc;
+        this.NPCManager[next_ent] = npc;
         Stats stat = Stats(10, 2);
-        this.StatsManager[1] = stat;
+        this.StatsManager[next_ent] = stat;
         comp = Components(true, true, true, true, true, true);
-        this.comps[1] = comp;
+        this.comps[next_ent] = comp;
+        next_ent++;
+        
 
         //slice
-        auto sl = this.comps[0..2]; //get all components for existing entities
+        int max_num = 3;
+        auto sl = this.comps[0..max_num]; //get all components for existing entities
         this.sl = sl;
         //slices to all the managers in order to be able to remove
-        auto RenderableManager_sl = this.RenderableManager[0..2];
-        auto PositionManager_sl = this.PositionManager[0..2];
-        auto NameManager_sl = this.NameManager[0..2];
-        auto NPCManager_sl = this.NPCManager[0..2];
-        auto StatsManager_sl = this.StatsManager[0..2];
+        auto RenderableManager_sl = this.RenderableManager[0..max_num];
+        auto PositionManager_sl = this.PositionManager[0..max_num];
+        auto NameManager_sl = this.NameManager[0..max_num];
+        auto NPCManager_sl = this.NPCManager[0..max_num];
+        auto StatsManager_sl = this.StatsManager[0..max_num];
+        auto ItemManager_sl = this.ItemManager[0..max_num];
+        auto BackpackManager_sl = this.BackpackManager[0..max_num];
+        auto HealManager_sl = this.HealManager[0..max_num];
         this.RenderableManager_sl = RenderableManager_sl;
         this.PositionManager_sl = PositionManager_sl;
         this.NameManager_sl = NameManager_sl;
         this.NPCManager_sl = NPCManager_sl;
         this.StatsManager_sl = StatsManager_sl;
+        this.ItemManager_sl = ItemManager_sl;
+        this.BackpackManager_sl = BackpackManager_sl;
+        this.HealManager_sl = HealManager_sl;
     }
 
     void remove(int id){
@@ -125,31 +164,33 @@ struct World {
         writeln("Slice ", this.sl.length);
         //special case
         if (id == 1){
+            ulong end = this.sl.length-1;
             //update manager slices
             //'$' is a shortcut to array.length
-            this.RenderableManager_sl = this.RenderableManager_sl[0..1];
-            this.PositionManager_sl = this.PositionManager_sl[0..1];
-            this.NameManager_sl = this.NameManager_sl[0..1];
-            this.NPCManager_sl = this.NPCManager_sl[0..1];
-            this.StatsManager_sl = this.StatsManager_sl[0..1];
+            this.RenderableManager_sl = this.RenderableManager_sl[0..end];
+            this.PositionManager_sl = this.PositionManager_sl[0..end];
+            this.NameManager_sl = this.NameManager_sl[0..end];
+            this.NPCManager_sl = this.NPCManager_sl[0..end];
+            this.StatsManager_sl = this.StatsManager_sl[0..end];
             //this.comps = this.comps[0..$-1];
             //update slice
-            auto sl = this.comps[0..1];
+            auto sl = this.comps[0..end];
             this.sl = sl;
             writeln("Slice after remove: ", this.sl.length);
         }
 
         else if (id == this.sl.length-1){
+            ulong end = this.sl.length-1;
             //update manager slices
             //'$' is a shortcut to array.length
-            this.RenderableManager_sl = this.RenderableManager_sl[0..$-1];
-            this.PositionManager_sl = this.PositionManager_sl[0..$-1];
-            this.NameManager_sl = this.NameManager_sl[0..$-1];
-            this.NPCManager_sl = this.NPCManager_sl[0..$-1];
-            this.StatsManager_sl = this.StatsManager_sl[0..$-1];
+            this.RenderableManager_sl = this.RenderableManager_sl[0..end];
+            this.PositionManager_sl = this.PositionManager_sl[0..end];
+            this.NameManager_sl = this.NameManager_sl[0..end];
+            this.NPCManager_sl = this.NPCManager_sl[0..end];
+            this.StatsManager_sl = this.StatsManager_sl[0..end];
             //this.comps = this.comps[0..$-1];
             //update slice
-            auto sl = this.comps[0..$-1];
+            auto sl = this.comps[0..end];
             this.sl = sl;
             writeln("Slice after remove: ", this.sl.length);
         }
@@ -159,4 +200,17 @@ struct World {
 
     }
 
+    void addComp(int id) {
+        //currently hardcoded
+        InBackpack bp = InBackpack();
+        this.BackpackManager[id] = bp;
+        Components comp = Components(true, true, false, true, false, false, true, true, true);
+        this.comps[id] = comp;
+    }
+
+    void removeComp(int id) {
+        //this.BackpackManager[id] = null;
+        Components comp = Components(true, true, false, true, false, false, true, false, true);
+        this.comps[id] = comp;
+    }
 }
