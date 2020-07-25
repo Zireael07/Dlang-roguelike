@@ -46,6 +46,8 @@ struct InBackpack {}
 
 struct Heal {}
 
+struct Missile {}
+
 struct Components {
     bool pos;
     bool renderable; //=false
@@ -56,7 +58,8 @@ struct Components {
     bool item;
     bool in_backpack;
     bool heal;
-    //bool combat;
+    bool missile;
+
     string toString() {
         import std.format: format;
 
@@ -77,6 +80,7 @@ struct World {
     Item[2048] ItemManager;
     InBackpack[2048] BackpackManager;
     Heal[2048] HealManager;
+    Missile[2048] MissileManager;
 
     //slices
     Position[] PositionManager_sl;
@@ -87,6 +91,7 @@ struct World {
     Item[] ItemManager_sl;
     InBackpack[] BackpackManager_sl;
     Heal[] HealManager_sl;
+    Missile[] MissileManager_sl;
     
     //store whether we have the component
     Components[2048] comps; 
@@ -121,6 +126,20 @@ struct World {
         this.comps[next_ent] = comp;
         next_ent++;
 
+        rnd = Renderable('?');
+        this.RenderableManager[next_ent] = rnd;
+        pos = Position(15, 15);
+        this.PositionManager[next_ent] = pos;
+        nm = Name("Magic missile");
+        this.NameManager[next_ent] = nm;
+        it = Item();
+        this.ItemManager[next_ent] = it;
+        Missile ms = Missile();
+        this.MissileManager[next_ent] = ms;
+        comp = Components(true, true, false, true, false, false, true, false, false, true);
+        this.comps[next_ent] = comp;
+        next_ent++;
+
         rnd = Renderable('h');
         this.RenderableManager[next_ent] = rnd;
         pos = Position(4,4);
@@ -137,7 +156,7 @@ struct World {
         
 
         //slice
-        int max_num = 3;
+        int max_num = next_ent;
         auto sl = this.comps[0..max_num]; //get all components for existing entities
         this.sl = sl;
         //slices to all the managers in order to be able to remove
@@ -204,13 +223,15 @@ struct World {
         //currently hardcoded
         InBackpack bp = InBackpack();
         this.BackpackManager[id] = bp;
-        Components comp = Components(true, true, false, true, false, false, true, true, true);
-        this.comps[id] = comp;
+        //Components comp = Components(true, true, false, true, false, false, true, true, true);
+        this.comps[id].in_backpack = true;
+        //this.comps[id] = comp;
     }
 
     void removeComp(int id) {
         //this.BackpackManager[id] = null;
-        Components comp = Components(true, true, false, true, false, false, true, false, true);
-        this.comps[id] = comp;
+        this.comps[id].in_backpack = false;
+        //Components comp = Components(true, true, false, true, false, false, true, false, true);
+        //this.comps[id] = comp;
     }
 }

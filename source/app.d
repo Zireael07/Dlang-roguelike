@@ -6,6 +6,7 @@ import std.string;
 import core.stdc.string;
 import std.stdio : writeln, write;
 import std.algorithm; //to remove from array
+import std.math;
 
 import source.map;
 import source.fov;
@@ -104,6 +105,14 @@ class Engine {
         return ret;
     }
 
+
+    float getDistance(int sx, int sy, int tx, int ty) {
+        int dx=sx-tx;
+        int dy=sy-ty;
+        return sqrt(float(dx*dx+dy*dy));
+    }
+
+    //actions
     bool PlayerMove(int dx, int dy){
         int tx = this.world.PositionManager[0].x + dx;
         int ty = this.world.PositionManager[0].y + dy;
@@ -289,9 +298,84 @@ class Engine {
                     //axe the potion
                     this.world.remove(cast(int)inv[shortcut]);
                 }
+                //missile
+                else if (this.world.sl[inv[shortcut]].missile) {
+                    this.guiMessage("Left-click a target tile for the fireball,\nor right-click to cancel.");
+                    int x,y;
+                    if (! this.pickATile(&x,&y)) {
+                        return;
+                    }
+                    //picked a tile
+                    writeln("Picked tile ",x,y);
+                    //is there an actor here?
+                    int blocking_id = this.getTileBlockers(x, y);
+                    if (this.getTileBlockers(x, y)){
+                        //deal damage!
+                        int damage = 6;
+                        this.world.StatsManager[blocking_id].hp -= damage;
+                        //concat a string works just like appending to an array
+                        this.guiMessage("Player dealt " ~ format("%d", damage) ~ " missile damage to enemy!");
+                        //dead
+                        if (this.world.StatsManager[blocking_id].hp <= 0){
+                            //writeln("Enemy dead!");
+                            this.guiMessage("Missile killed enemy");
+                            //remove from ECS
+                            this.world.remove(blocking_id);
+                        }
+                   }
+                }
             }
         }
     }
+
+    bool pickATile(int *x, int *y, float maxRange=2.0f) {
+        while ( !TCOD_console_is_window_closed()) {
+            this.render();
+            // highlight the possible range
+            int sx = this.world.PositionManager[0].x;
+            int sy = this.world.PositionManager[0].y;
+
+            foreach (cx; 0..this.fov.map.width) {
+                foreach (cy; 0..this.fov.map.height) {
+                    if ( fov.isVisible(cx,cy)
+                        && ( maxRange == 0 || this.getDistance(sx, sy, cx,cy) <= maxRange) ) {
+                        //null means default console    
+                        //TCODColor col=TCODConsole::root->getCharBackground(cx,cy);
+                        auto col = TCOD_console_get_char_background(null, cx,cy);
+                        //col = col * 1.2f;
+                        ubyte hilite = cast(ubyte)1.2f;
+                        // split it up and cast to prevent truncating conversion warning
+                        col.r = col.r * cast(ubyte)0.5f;
+                        col.g = col.g * cast(ubyte)0.5f;
+                        col.b = col.b * cast(ubyte)0.5f;
+                        TCOD_console_set_char_background(null, cx, cy, col, TCOD_BKGND_SET);
+                        //TCODConsole::root->setCharBackground(cx,cy,col);
+                    }
+                }
+            }
+            
+            TCOD_key_t key = {TCODK_NONE, 0};
+            TCOD_mouse_t mouse;
+            TCOD_sys_check_for_event(cast(TCOD_event_t)(TCOD_EVENT_KEY_PRESS | TCOD_EVENT_MOUSE), 
+                                 &key, &mouse);
+            if (fov.isVisible(mouse.cx, mouse.cy)
+                && ( maxRange == 0 || this.getDistance(sx, sy, mouse.cx,mouse.cy) <= maxRange )) {
+                TCOD_console_set_char_background(null, mouse.cx, mouse.cy, TCOD_white, TCOD_BKGND_SET);
+                
+                if ( mouse.lbutton_pressed ) {
+                    *x=mouse.cx;
+                    *y=mouse.cy;
+                    return true;
+                }
+            } 
+            if (mouse.rbutton_pressed || key.vk != TCODK_NONE) {
+                return false;
+            }
+            TCOD_console_flush();
+        }
+        return false;
+    }
+
 
     void update(){
        auto k = TCOD_console_check_for_keypress(TCOD_KEY_PRESSED);
