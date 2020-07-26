@@ -96,6 +96,31 @@ struct World {
     //store whether we have the component
     Components[2048] comps; 
     Components[] sl; //slice
+
+    void setupSlices(int max_num) {
+        //slice
+        //int max_num = next_ent;
+        auto sl = this.comps[0..max_num]; //get all components for existing entities
+        this.sl = sl;
+        //slices to all the managers in order to be able to remove
+        auto RenderableManager_sl = this.RenderableManager[0..max_num];
+        auto PositionManager_sl = this.PositionManager[0..max_num];
+        auto NameManager_sl = this.NameManager[0..max_num];
+        auto NPCManager_sl = this.NPCManager[0..max_num];
+        auto StatsManager_sl = this.StatsManager[0..max_num];
+        auto ItemManager_sl = this.ItemManager[0..max_num];
+        auto BackpackManager_sl = this.BackpackManager[0..max_num];
+        auto HealManager_sl = this.HealManager[0..max_num];
+        this.RenderableManager_sl = RenderableManager_sl;
+        this.PositionManager_sl = PositionManager_sl;
+        this.NameManager_sl = NameManager_sl;
+        this.NPCManager_sl = NPCManager_sl;
+        this.StatsManager_sl = StatsManager_sl;
+        this.ItemManager_sl = ItemManager_sl;
+        this.BackpackManager_sl = BackpackManager_sl;
+        this.HealManager_sl = HealManager_sl;
+    }
+
     //set us up
     void setup(){
         //0 is always the player
@@ -156,26 +181,7 @@ struct World {
         
 
         //slice
-        int max_num = next_ent;
-        auto sl = this.comps[0..max_num]; //get all components for existing entities
-        this.sl = sl;
-        //slices to all the managers in order to be able to remove
-        auto RenderableManager_sl = this.RenderableManager[0..max_num];
-        auto PositionManager_sl = this.PositionManager[0..max_num];
-        auto NameManager_sl = this.NameManager[0..max_num];
-        auto NPCManager_sl = this.NPCManager[0..max_num];
-        auto StatsManager_sl = this.StatsManager[0..max_num];
-        auto ItemManager_sl = this.ItemManager[0..max_num];
-        auto BackpackManager_sl = this.BackpackManager[0..max_num];
-        auto HealManager_sl = this.HealManager[0..max_num];
-        this.RenderableManager_sl = RenderableManager_sl;
-        this.PositionManager_sl = PositionManager_sl;
-        this.NameManager_sl = NameManager_sl;
-        this.NPCManager_sl = NPCManager_sl;
-        this.StatsManager_sl = StatsManager_sl;
-        this.ItemManager_sl = ItemManager_sl;
-        this.BackpackManager_sl = BackpackManager_sl;
-        this.HealManager_sl = HealManager_sl;
+        setupSlices(next_ent);
     }
 
     void remove(int id){

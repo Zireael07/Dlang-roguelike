@@ -2,6 +2,9 @@
 	"fileVersion": 1,
 	"versions": {
 		"derelict-util": "3.0.0-beta.2",
-		"libtcod-d": "1.5.1-2"
+		"dunit": "1.0.16",
+		"libtcod-d": "1.5.1-2",
+		"painlessjson": "1.4.0",
+		"painlesstraits": "0.3.0"
 	}
 }

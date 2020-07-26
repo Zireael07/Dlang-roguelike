@@ -4,9 +4,12 @@ import tcod.c.all;
 //to convert strings to 0-terminated as in C
 import std.string;
 import core.stdc.string;
-import std.stdio : writeln, write;
+import std.stdio : writeln, write, File;
 import std.algorithm; //to remove from array
 import std.math;
+import std.file; // to delete save
+import std.json; //for loading save
+import painlessjson; //for easy serializing
 
 import source.map;
 import source.fov;
@@ -377,6 +380,64 @@ class Engine {
     }
 
 
+    void load() {
+        if (exists("save.json")){
+            writeln("Save exists");
+            auto file = File("save.json", "r");
+            string line = "";
+            while (!file.eof()) {
+                line = strip(file.readln());
+                //writeln("read line -> | ", line);
+            }
+
+            //debug
+            auto parsed = parseJSON(line);
+            //writeln(parsed);
+
+            //actually load our stuff
+            //hand parse the JSON
+
+            //to make our lives easier, only load the stuff that may change during the game
+            //positions
+            auto data_pos = parsed["PositionManager_sl"];
+            writeln(data_pos);
+            //writeln(data_pos.type);
+            foreach (ulong i, e; data_pos) {
+                //writeln(e);
+                //writeln(e["x"].type);
+                Position pos = Position(cast(int)e["x"].integer, cast(int)e["y"].integer);
+                this.world.PositionManager[i] = pos;
+            }
+
+            //components
+            auto data_comps = parsed["sl"];
+            writeln(data_comps);
+            foreach (ulong i, e; data_comps) {
+                writeln(e);
+                Components comp = Components(e["pos"].boolean, e["renderable"].boolean, e["tileblocker"].boolean, e["name"].boolean, e["npc"].boolean, e["stats"].boolean, e["item"].boolean, e["in_backpack"].boolean, e["heal"].boolean, e["missile"].boolean);
+                this.world.comps[i] = comp;
+            }
+
+            //this would be simplest but doesn't actually work for some reason
+            //auto load_data = fromJSON!World(parseJSON(line));
+            //writeln("data: ", load_data); //crashes
+            //this.world = load_data;
+
+            //writeln("@: ", this.world.PositionManager[0].x,  " " , this.world.PositionManager[0].y);
+            writeln("Game loaded!");
+        }
+    }
+
+    void save() {
+        //serializing is handled by an external library, painlessly (true to their name)
+        auto json_data = toJSON(this.world);
+        //writeln("Data: ", json_data);
+
+        //create file
+        auto f = File("save.json", "w"); // open for writing
+        f.write(json_data);
+    }
+
     void update(){
        auto k = TCOD_console_check_for_keypress(TCOD_KEY_PRESSED);
         switch(k.vk) {
@@ -490,7 +551,8 @@ void main()
     TCOD_console_set_custom_font(toStringz(font), font_flags, nb_char_horiz, nb_char_vertic);
 
     Engine engine = new Engine();
-
+    //load new game if any
+    engine.load();
     
     //Game loop
     //1. input
@@ -498,9 +560,10 @@ void main()
     while(!TCOD_console_is_window_closed()) {
         engine.update();
         engine.render();
-        TCOD_console_flush();
-        
+        TCOD_console_flush();   
     }
+    //save on exit
+    engine.save();
 }
 
  
